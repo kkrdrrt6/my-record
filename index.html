@@ -2,135 +2,120 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>record</title>
 
 <style>
 body {
   margin: 0;
-  background: #fff;
-  color: #000;
+  background: white;
+  color: black;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 #app {
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 24px 20px 80px;
+  padding: 24px;
 }
 
-/* HEADER */
+/* header */
 header {
   text-align: center;
 }
 
 #profile {
-  width: 140px;
-  height: 140px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
+  border: 1px solid black;
   object-fit: cover;
-  border: 1px solid #000;
   cursor: pointer;
 }
 
 .title {
-  margin-top: 18px;
+  margin-top: 16px;
   font-size: 20px;
 }
 
-/* NAV */
+/* nav */
 nav {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 40px;
+  margin-top: 32px;
 }
 
 nav button {
-  background: #fff;
-  border: 1px solid #000;
-  padding: 6px 12px;
-  cursor: pointer;
+  background: white;
+  border: 1px solid black;
+  padding: 6px 10px;
 }
 
-nav button.active {
-  background: #000;
-  color: #fff;
-}
-
-/* CONTENT */
+/* content */
 .section {
-  margin-top: 40px;
+  margin-top: 32px;
 }
 
 .card {
-  border: 1px solid #000;
-  padding: 16px;
+  border: 1px solid black;
+  padding: 12px;
 }
 
-input, textarea, select {
+input, textarea, select, button {
   width: 100%;
   margin-top: 8px;
   padding: 8px;
-  border: 1px solid #000;
-  background: #fff;
-}
-
-textarea {
-  resize: vertical;
+  background: white;
+  border: 1px solid black;
 }
 
 .log {
-  border-top: 1px solid #000;
-  margin-top: 12px;
-  padding-top: 8px;
+  margin-top: 10px;
+  border-top: 1px solid black;
+  padding-top: 6px;
   font-size: 14px;
 }
 
-/* CALENDAR */
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
+/* calendar */
 .calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+  margin-top: 12px;
 }
 
 .day {
-  border: 1px solid #000;
-  min-height: 90px;
-  padding: 4px;
+  border: 1px solid black;
+  min-height: 70px;
   font-size: 11px;
+  padding: 4px;
 }
 </style>
 </head>
 
 <body>
 <div id="app"></div>
-<input type="file" id="imageInput" accept="image/*" hidden />
+<input type="file" id="imgInput" accept="image/*" hidden>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
 const app = document.getElementById("app");
-const imageInput = document.getElementById("imageInput");
+const imgInput = document.getElementById("imgInput");
 
 const categories = ["독서", "영화", "베이스 연습", "작곡 연습"];
 let records = JSON.parse(localStorage.getItem("records") || "[]");
 
-let view = "독서";
-let now = new Date();
-let year = now.getFullYear();
-let month = now.getMonth();
+let current = "독서";
+let today = new Date();
+let year = today.getFullYear();
+let month = today.getMonth();
 
-/* 기본 UI */
+/* UI */
 app.innerHTML = `
 <header>
-  <img id="profile" />
+  <img id="profile">
   <div class="title">*.˚ ༘♡ ᖰ(°'^'°)ᖳ *.˚ ༘♡</div>
 </header>
 
@@ -139,84 +124,69 @@ app.innerHTML = `
   <button data-view="달력">달력</button>
 </nav>
 
-<div class="section" id="content"></div>
+<div id="content" class="section"></div>
 `;
 
-/* 프로필 이미지 */
 const profile = document.getElementById("profile");
 profile.src = localStorage.getItem("profile") || "";
-profile.addEventListener("click", () => {
-  imageInput.value = "";
-  imageInput.click();
-});
 
-imageInput.addEventListener("change", e => {
+profile.onclick = () => imgInput.click();
+
+imgInput.onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
-
   const reader = new FileReader();
   reader.onload = () => {
     profile.src = reader.result;
     localStorage.setItem("profile", reader.result);
   };
   reader.readAsDataURL(file);
-});
+};
 
-/* 네비 버튼 */
 document.querySelectorAll("nav button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    view = btn.dataset.view;
+  btn.onclick = () => {
+    current = btn.dataset.view;
     render();
-  });
+  };
 });
 
-/* 렌더 */
 function render() {
   const content = document.getElementById("content");
   content.innerHTML = "";
 
-  document.querySelectorAll("nav button").forEach(b => {
-    b.classList.toggle("active", b.dataset.view === view);
-  });
-
-  if (view === "달력") {
+  if (current === "달력") {
     renderCalendar(content);
     return;
   }
 
-  const card = document.createElement("div");
-  card.className = "card";
-  card.innerHTML = `
-    <select id="category">
+  const box = document.createElement("div");
+  box.className = "card";
+  box.innerHTML = `
+    <select id="cat">
       ${categories.map(c => `<option>${c}</option>`).join("")}
     </select>
-    <input id="title" placeholder="제목" />
+    <input id="title" placeholder="제목">
     <textarea id="memo" placeholder="기록"></textarea>
     <button id="save">저장</button>
   `;
-  content.appendChild(card);
+  content.appendChild(box);
 
-  records
-    .filter(r => r.category === view)
-    .forEach(r => {
-      const div = document.createElement("div");
-      div.className = "log";
-      div.innerText = \`\${r.dateStr} · \${r.title} — \${r.memo}\`;
-      content.appendChild(div);
-    });
+  records.filter(r => r.cat === current).forEach(r => {
+    const div = document.createElement("div");
+    div.className = "log";
+    div.textContent = `${r.date} · ${r.title}`;
+    content.appendChild(div);
+  });
 
   document.getElementById("save").onclick = () => {
     const title = document.getElementById("title").value.trim();
     if (!title) return;
 
     records.push({
-      category: document.getElementById("category").value,
+      cat: document.getElementById("cat").value,
       title,
-      memo: document.getElementById("memo").value,
-      y: year,
-      m: month,
-      d: new Date().getDate(),
-      dateStr: new Date().toLocaleDateString()
+      date: new Date().toLocaleDateString(),
+      y: year, m: month, d: new Date().getDate()
     });
 
     localStorage.setItem("records", JSON.stringify(records));
@@ -224,59 +194,43 @@ function render() {
   };
 }
 
-/* 달력 */
-function renderCalendar(container) {
-  const header = document.createElement("div");
-  header.className = "calendar-header";
-  header.innerHTML = `
+function renderCalendar(el) {
+  const h = document.createElement("div");
+  h.innerHTML = `
     <button id="prev">◀</button>
     <strong>${year}.${month + 1}</strong>
     <button id="next">▶</button>
   `;
-  container.appendChild(header);
+  el.appendChild(h);
 
   const cal = document.createElement("div");
   cal.className = "calendar";
 
-  const firstDay = new Date(year, month, 1).getDay();
-  const lastDate = new Date(year, month + 1, 0).getDate();
+  const first = new Date(year, month, 1).getDay();
+  const last = new Date(year, month + 1, 0).getDate();
 
-  for (let i = 0; i < firstDay; i++) {
-    cal.appendChild(document.createElement("div"));
-  }
+  for (let i = 0; i < first; i++) cal.appendChild(document.createElement("div"));
 
-  for (let d = 1; d <= lastDate; d++) {
+  for (let d = 1; d <= last; d++) {
     const cell = document.createElement("div");
     cell.className = "day";
-
-    const dayRecords = records.filter(r =>
-      r.y === year && r.m === month && r.d === d
-    );
-
-    cell.innerHTML =
-      `<strong>${d}</strong><br>` +
-      dayRecords.map(r => r.category).join("<br>");
-
+    cell.innerHTML = `<strong>${d}</strong>`;
     cal.appendChild(cell);
   }
 
-  container.appendChild(cal);
+  el.appendChild(cal);
 
   document.getElementById("prev").onclick = () => {
-    month--;
-    if (month < 0) { month = 11; year--; }
+    month--; if (month < 0) { month = 11; year--; }
     render();
   };
-
   document.getElementById("next").onclick = () => {
-    month++;
-    if (month > 11) { month = 0; year++; }
+    month++; if (month > 11) { month = 0; year++; }
     render();
   };
 }
 
 render();
-
 });
 </script>
 </body>
