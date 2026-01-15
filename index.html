@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>record</title>
+
+<style>
+body {
+  margin: 0;
+  background: #fff;
+  color: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+/* HEADER */
+header {
+  text-align: center;
+}
+
+#profile {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #000;
+  cursor: pointer;
+}
+
+.title {
+  margin-top: 16px;
+  font-size: 18px;
+}
+
+.time {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+/* NAV */
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 40px;
+}
+
+nav button {
+  background: #fff;
+  border: 1px solid #000;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+nav button.active {
+  background: #000;
+  color: #fff;
+}
+
+/* CONTENT */
+.section {
+  margin-top: 40px;
+}
+
+.card {
+  border: 1px solid #000;
+  padding: 16px;
+}
+
+input, textarea, select {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #000;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.log {
+  border-top: 1px solid #000;
+  margin-top: 12px;
+  padding-top: 8px;
+  font-size: 14px;
+}
+
+/* CALENDAR */
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.day {
+  border: 1px solid #000;
+  min-height: 90px;
+  padding: 4px;
+  font-size: 11px;
+}
+</style>
+</head>
+
+<body>
+<div id="app"></div>
+<input type="file" id="imageInput" accept="image/*" hidden />
+
+<script>
+const app = document.getElementById("app");
+const imageInput = document.getElementById("imageInput");
+
+const categories = ["독서", "영화", "베이스 연습", "작곡 연습"];
+let records = JSON.parse(localStorage.getItem("records") || "[]");
+
+let view = "독서";
+let now = new Date();
+let year = now.getFullYear();
+let month = now.getMonth();
+
+/* 기본 UI */
+app.innerHTML = `
+<header>
+  <img id="profile" />
+  <div class="title">*.˚ ༘♡ ᖰ(°'^'°)ᖳ *.˚ ༘♡</div>
+  <div class="time" id="time"></div>
+</header>
+
+<nav>
+  ${categories.map(c => `<button data-view="${c}">${c}</button>`).join("")}
+  <button data-view="달력">달력</button>
+</nav>
+
+<div class="section" id="content"></div>
+`;
+
+/* 프로필 이미지 */
+const profile = document.getElementById("profile");
+profile.src = localStorage.getItem("profile") || "";
+profile.addEventListener("click", () => {
+  imageInput.value = "";
+  imageInput.click();
+});
+
+imageInput.addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    profile.src = reader.result;
+    localStorage.setItem("profile", reader.result);
+  };
+  reader.readAsDataURL(file);
+});
+
+/* 시계 */
+function updateClock() {
+  document.getElementById("time").innerText =
+    new Date().toLocaleTimeString() + "  ☾";
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* 네비 버튼 */
+document.querySelectorAll("nav button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    view = btn.dataset.view;
+    render();
+  });
+});
+
+/* 렌더 */
+function render() {
+  const content = document.getElementById("content");
+  content.innerHTML = "";
+
+  document.querySelectorAll("nav button").forEach(b => {
+    b.classList.toggle("active", b.dataset.view === view);
+  });
+
+  if (view === "달력") {
+    renderCalendar(content);
+    return;
+  }
+
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <select id="category">
+      ${categories.map(c => `<option>${c}</option>`).join("")}
+    </select>
+    <input id="title" placeholder="제목" />
+    <textarea id="memo" placeholder="기록"></textarea>
+    <button id="save">저장</button>
+  `;
+  content.appendChild(card);
+
+  records
+    .filter(r => r.category === view)
+    .forEach(r => {
+      const div = document.createElement("div");
+      div.className = "log";
+      div.innerText = \`\${r.dateStr} · \${r.title} — \${r.memo}\`;
+      content.appendChild(div);
+    });
+
+  document.getElementById("save").onclick = () => {
+    const title = document.getElementById("title").value.trim();
+    if (!title) return;
+
+    records.push({
+      category: document.getElementById("category").value,
+      title,
+      memo: document.getElementById("memo").value,
+      y: year,
+      m: month,
+      d: new Date().getDate(),
+      dateStr: new Date().toLocaleDateString()
+    });
+
+    localStorage.setItem("records", JSON.stringify(records));
+    render();
+  };
+}
+
+/* 달력 */
+function renderCalendar(container) {
+  const header = document.createElement("div");
+  header.className = "calendar-header";
+  header.innerHTML = `
+    <button id="prev">◀</button>
+    <strong>${year}.${month + 1}</strong>
+    <button id="next">▶</button>
+  `;
+  container.appendChild(header);
+
+  const cal = document.createElement("div");
+  cal.className = "calendar";
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    cal.appendChild(document.createElement("div"));
+  }
+
+  for (let d = 1; d <= lastDate; d++) {
+    const cell = document.createElement("div");
+    cell.className = "day";
+
+    const dayRecords = records.filter(r =>
+      r.y === year && r.m === month && r.d === d
+    );
+
+    cell.innerHTML =
+      `<strong>${d}</strong><br>` +
+      dayRecords.map(r => r.category).join("<br>");
+
+    cal.appendChild(cell);
+  }
+
+  container.appendChild(cal);
+
+  document.getElementById("prev").onclick = () => {
+    month--;
+    if (month < 0) { month = 11; year--; }
+    render();
+  };
+
+  document.getElementById("next").onclick = () => {
+    month++;
+    if (month > 11) { month = 0; year++; }
+    render();
+  };
+}
+
+render();
+</script>
+</body>
+</html>
