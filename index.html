@@ -32,6 +32,9 @@ input, textarea, select, button { width: 100%; margin-top: 8px; padding: 8px; bo
 .day { border: 1px solid black; min-height: 80px; padding: 4px; font-size: 11px; cursor: pointer; }
 .day div { font-size: 10px; }
 .back { margin-top: 12px; }
+
+.calendar-nav { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.calendar-nav button { padding: 4px 10px; }
 </style>
 </head>
 
@@ -48,7 +51,8 @@ const app = document.getElementById("app");
 const profileInput = document.getElementById("profileInput");
 const imgInput = document.getElementById("imgInput");
 
-const categories = ["독서","영화","베이스 연습","작곡 연습"];
+// 카테고리 저장/불러오기
+let categories = JSON.parse(localStorage.getItem("categories") || '["독서","영화","베이스 연습","작곡 연습"]');
 let records = JSON.parse(localStorage.getItem("records") || "[]");
 
 let current = "독서";
@@ -61,6 +65,7 @@ let year = today.getFullYear();
 let month = today.getMonth();
 
 /* UI */
+function renderApp(){
 app.innerHTML = `
 <header>
   <img id="profile">
@@ -78,12 +83,15 @@ app.innerHTML = `
 <nav>
   ${categories.map(c=>`<button data-v="${c}">${c}</button>`).join("")}
   <button data-v="달력">달력</button>
+  <button id="manageCats">카테고리 관리</button>
 </nav>
 
 <div id="content"></div>
 `;
+}
 
 /* PROFILE */
+renderApp();
 const profile = document.getElementById("profile");
 profile.src = localStorage.getItem("profile") || "";
 profile.onclick = ()=>profileInput.click();
@@ -101,17 +109,64 @@ setInterval(()=>{
 },1000);
 
 /* NAV */
-document.querySelectorAll("nav button").forEach(b=>{
-  b.onclick=()=>{ current=b.dataset.v; selectedDate=null; render(); };
-});
+function attachNavEvents(){
+  document.querySelectorAll("nav button[data-v]").forEach(b=>{
+    b.onclick=()=>{ current=b.dataset.v; selectedDate=null; render(); };
+  });
+  document.getElementById("manageCats").onclick = manageCategories;
+}
+attachNavEvents();
 
+/* 카테고리 관리 */
+function manageCategories(){
+  const action = prompt(`"추가" / "삭제" / "수정" 입력:\n현재: ${categories.join(", ")}`);
+  if(!action) return;
+
+  if(action === "추가"){
+    const newCat = prompt("추가할 카테고리 이름:");
+    if(newCat && !categories.includes(newCat)){
+      categories.push(newCat);
+      localStorage.setItem("categories", JSON.stringify(categories));
+      alert(`"${newCat}" 추가 완료!`);
+      renderApp(); render(); attachNavEvents();
+    }
+  } 
+  else if(action === "삭제"){
+    const delCat = prompt(`삭제할 카테고리 이름 입력:\n현재: ${categories.join(", ")}`);
+    if(delCat && categories.includes(delCat)){
+      categories = categories.filter(c => c !== delCat);
+      localStorage.setItem("categories", JSON.stringify(categories));
+      alert(`"${delCat}" 삭제 완료!`);
+      renderApp(); render(); attachNavEvents();
+    }
+  }
+  else if(action === "수정"){
+    const oldCat = prompt(`수정할 카테고리 이름 입력:\n현재: ${categories.join(", ")}`);
+    if(oldCat && categories.includes(oldCat)){
+      const newCat = prompt(`"${oldCat}"를 무엇으로 바꿀까요?`);
+      if(newCat && !categories.includes(newCat)){
+        // 카테고리 배열 수정
+        categories = categories.map(c => c === oldCat ? newCat : c);
+        // 기존 기록도 수정
+        records.forEach(r=>{
+          if(r.cat === oldCat) r.cat = newCat;
+        });
+        // 저장
+        localStorage.setItem("categories", JSON.stringify(categories));
+        localStorage.setItem("records", JSON.stringify(records));
+        alert(`"${oldCat}" → "${newCat}" 수정 완료!`);
+        renderApp(); render(); attachNavEvents();
+      }
+    }
+  }
+}
+
+/* RENDER */
 function render() {
   const c=document.getElementById("content");
   c.innerHTML="";
-
   if(current==="달력"){ renderCalendar(c); return; }
   if(current==="날짜"){ renderDateView(c); return; }
-
   renderCategory(c);
 }
 
@@ -218,9 +273,7 @@ function renderCalendar(el){
 
   // 이전/다음 달 버튼
   const navDiv = document.createElement("div");
-  navDiv.style.display = "flex";
-  navDiv.style.justifyContent = "space-between";
-  navDiv.style.marginBottom = "6px";
+  navDiv.className = "calendar-nav";
 
   const prevBtn = document.createElement("button");
   prevBtn.textContent = "← 이전";
@@ -247,19 +300,21 @@ function renderCalendar(el){
   el.appendChild(navDiv);
 
   // 달력 날짜
-  const cal=document.createElement("div");
-  cal.className="calendar";
-  const last=new Date(year,month+1,0).getDate();
+  const cal = document.createElement("div");
+  cal.className = "calendar";
+  const last = new Date(year, month + 1, 0).getDate();
 
   for(let d=1; d<=last; d++){
-    const cell=document.createElement("div");
-    cell.className="day";
-    cell.innerHTML=d;
-    const dayRecords=records.filter(r=>r.y===year&&r.m===month&&r.d===d);
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.innerHTML = d;
+
+    const dayRecords = records.filter(r => r.y === year && r.m === month && r.d === d);
     dayRecords.forEach(r=>{
-      cell.innerHTML+=`<div>· ${r.title}</div>`;
+      cell.innerHTML += `<div>· ${r.title}</div>`;
     });
-    cell.onclick=()=>{
+
+    cell.onclick = ()=>{
       if(dayRecords.length){
         selectedDate = dayRecords[0].date;
         current = "날짜";
@@ -272,6 +327,7 @@ function renderCalendar(el){
   el.appendChild(cal);
 }
 
+/* 초기 렌더 */
 render();
 });
 </script>
