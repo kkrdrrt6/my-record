@@ -6,22 +6,11 @@
 <title>record</title>
 
 <style>
-body {
-  margin: 0;
-  background: white;
-  color: black;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-}
+body { margin: 0; background: white; color: black; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
 #app { max-width: 820px; margin: auto; padding: 24px; }
 header { text-align: center; }
 
-#profile {
-  width: 120px; height: 120px;
-  border-radius: 50%;
-  border: 1px solid black;
-  object-fit: cover;
-  cursor: pointer;
-}
+#profile { width: 120px; height: 120px; border-radius: 50%; border: 1px solid black; object-fit: cover; cursor: pointer; }
 
 .title { margin-top: 16px; font-size: 20px; }
 #clock { font-size: 14px; margin-top: 6px; }
@@ -34,36 +23,13 @@ nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
 nav button { border: 1px solid black; background: white; padding: 6px 12px; }
 
 .card { border: 1px solid black; padding: 12px; margin-top: 20px; }
-input, textarea, select, button {
-  width: 100%; margin-top: 8px; padding: 8px;
-  border: 1px solid black; background: white;
-}
+input, textarea, select, button { width: 100%; margin-top: 8px; padding: 8px; border: 1px solid black; background: white; }
 
-.log {
-  border-top: 1px solid black;
-  margin-top: 12px;
-  padding-top: 8px;
-  font-size: 13px;
-  cursor: pointer;
-}
-
+.log { border-top: 1px solid black; margin-top: 12px; padding-top: 8px; font-size: 13px; cursor: pointer; }
 .log img { width: 100%; margin-top: 6px; border: 1px solid black; }
 
-.calendar {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-top: 12px;
-}
-
-.day {
-  border: 1px solid black;
-  min-height: 80px;
-  padding: 4px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
+.calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 12px; }
+.day { border: 1px solid black; min-height: 80px; padding: 4px; font-size: 11px; cursor: pointer; }
 .day div { font-size: 10px; }
 .back { margin-top: 12px; }
 </style>
@@ -248,12 +214,44 @@ function saveRecord(){
 
 /* CALENDAR */
 function renderCalendar(el){
-  el.innerHTML=`<strong>${year}.${month+1}</strong>`;
+  el.innerHTML="";
+
+  // 이전/다음 달 버튼
+  const navDiv = document.createElement("div");
+  navDiv.style.display = "flex";
+  navDiv.style.justifyContent = "space-between";
+  navDiv.style.marginBottom = "6px";
+
+  const prevBtn = document.createElement("button");
+  prevBtn.textContent = "← 이전";
+  prevBtn.onclick = ()=>{
+    month--;
+    if(month < 0){ month = 11; year--; }
+    render();
+  }
+
+  const nextBtn = document.createElement("button");
+  nextBtn.textContent = "다음 →";
+  nextBtn.onclick = ()=>{
+    month++;
+    if(month > 11){ month = 0; year++; }
+    render();
+  }
+
+  const title = document.createElement("strong");
+  title.textContent = `${year}.${month+1}`;
+
+  navDiv.appendChild(prevBtn);
+  navDiv.appendChild(title);
+  navDiv.appendChild(nextBtn);
+  el.appendChild(navDiv);
+
+  // 달력 날짜
   const cal=document.createElement("div");
   cal.className="calendar";
-
   const last=new Date(year,month+1,0).getDate();
-  for(let d=1;d<=last;d++){
+
+  for(let d=1; d<=last; d++){
     const cell=document.createElement("div");
     cell.className="day";
     cell.innerHTML=d;
@@ -270,6 +268,7 @@ function renderCalendar(el){
     };
     cal.appendChild(cell);
   }
+
   el.appendChild(cal);
 }
 
