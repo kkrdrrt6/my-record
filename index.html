@@ -34,7 +34,14 @@ input, textarea, select, button { width: 100%; margin-top: 8px; padding: 8px; bo
 .back { margin-top: 12px; }
 
 .calendar-nav { display: flex; justify-content: space-between; margin-bottom: 6px; }
-.calendar-nav button { padding: 4px 10px; }
+.calendar-nav button {
+  padding: 2px 6px;       /* 작게 */
+  font-size: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.calendar-nav button:hover { color: blue; }
 </style>
 </head>
 
@@ -145,13 +152,10 @@ function manageCategories(){
     if(oldCat && categories.includes(oldCat)){
       const newCat = prompt(`"${oldCat}"를 무엇으로 바꿀까요?`);
       if(newCat && !categories.includes(newCat)){
-        // 카테고리 배열 수정
         categories = categories.map(c => c === oldCat ? newCat : c);
-        // 기존 기록도 수정
         records.forEach(r=>{
           if(r.cat === oldCat) r.cat = newCat;
         });
-        // 저장
         localStorage.setItem("categories", JSON.stringify(categories));
         localStorage.setItem("records", JSON.stringify(records));
         alert(`"${oldCat}" → "${newCat}" 수정 완료!`);
@@ -271,12 +275,11 @@ function saveRecord(){
 function renderCalendar(el){
   el.innerHTML="";
 
-  // 이전/다음 달 버튼
   const navDiv = document.createElement("div");
   navDiv.className = "calendar-nav";
 
   const prevBtn = document.createElement("button");
-  prevBtn.textContent = "← 이전";
+  prevBtn.textContent = "◀";
   prevBtn.onclick = ()=>{
     month--;
     if(month < 0){ month = 11; year--; }
@@ -284,7 +287,7 @@ function renderCalendar(el){
   }
 
   const nextBtn = document.createElement("button");
-  nextBtn.textContent = "다음 →";
+  nextBtn.textContent = "▶";
   nextBtn.onclick = ()=>{
     month++;
     if(month > 11){ month = 0; year++; }
@@ -299,7 +302,6 @@ function renderCalendar(el){
   navDiv.appendChild(nextBtn);
   el.appendChild(navDiv);
 
-  // 달력 날짜
   const cal = document.createElement("div");
   cal.className = "calendar";
   const last = new Date(year, month + 1, 0).getDate();
