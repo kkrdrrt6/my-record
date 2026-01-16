@@ -12,19 +12,11 @@ body {
   color: black;
   font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
-
-#app {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 24px;
-}
-
-/* HEADER */
+#app { max-width: 820px; margin: auto; padding: 24px; }
 header { text-align: center; }
 
 #profile {
-  width: 120px;
-  height: 120px;
+  width: 120px; height: 120px;
   border-radius: 50%;
   border: 1px solid black;
   object-fit: cover;
@@ -32,75 +24,31 @@ header { text-align: center; }
 }
 
 .title { margin-top: 16px; font-size: 20px; }
-#clock { margin-top: 6px; font-size: 14px; }
+#clock { font-size: 14px; margin-top: 6px; }
 
-/* ORBIT */
-#orbit {
-  width: 120px;
-  height: 120px;
-  margin: 16px auto;
-}
+#orbit { width: 120px; height: 120px; margin: 16px auto; }
+#orbit svg { animation: spin 30s linear infinite; }
+@keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
 
-#orbit svg {
-  width: 100%;
-  height: 100%;
-  animation: spin 30s linear infinite;
-}
+nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 32px; }
+nav button { border: 1px solid black; background: white; padding: 6px 12px; }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* NAV */
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 32px;
-}
-
-nav button {
-  background: white;
-  border: 1px solid black;
-  padding: 6px 12px;
-}
-
-/* CONTENT */
-.section { margin-top: 32px; }
-
-.card {
-  border: 1px solid black;
-  padding: 12px;
-}
-
+.card { border: 1px solid black; padding: 12px; margin-top: 20px; }
 input, textarea, select, button {
-  width: 100%;
-  margin-top: 8px;
-  padding: 8px;
-  background: white;
-  border: 1px solid black;
+  width: 100%; margin-top: 8px; padding: 8px;
+  border: 1px solid black; background: white;
 }
 
 .log {
-  margin-top: 12px;
   border-top: 1px solid black;
+  margin-top: 12px;
   padding-top: 8px;
   font-size: 13px;
+  cursor: pointer;
 }
 
-.log img {
-  width: 100%;
-  margin-top: 6px;
-  border: 1px solid black;
-}
+.log img { width: 100%; margin-top: 6px; border: 1px solid black; }
 
-.delete {
-  margin-top: 6px;
-  font-size: 11px;
-}
-
-/* CALENDAR */
 .calendar {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -110,10 +58,13 @@ input, textarea, select, button {
 
 .day {
   border: 1px solid black;
-  min-height: 70px;
+  min-height: 80px;
   padding: 4px;
   font-size: 11px;
+  cursor: pointer;
 }
+
+.day div { font-size: 10px; }
 </style>
 </head>
 
@@ -121,23 +72,24 @@ input, textarea, select, button {
 <div id="app"></div>
 
 <input type="file" id="profileInput" accept="image/*" hidden>
-<input type="file" id="recordImageInput" accept="image/*" hidden>
+<input type="file" id="imgInput" accept="image/*" hidden>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
 const app = document.getElementById("app");
 const profileInput = document.getElementById("profileInput");
-const recordImageInput = document.getElementById("recordImageInput");
+const imgInput = document.getElementById("imgInput");
 
-const categories = ["독서", "영화", "베이스 연습", "작곡 연습"];
+const categories = ["독서","영화","베이스 연습","작곡 연습"];
 let records = JSON.parse(localStorage.getItem("records") || "[]");
 
 let current = "독서";
+let editIndex = null;
 let tempImage = null;
-const now = new Date();
-let year = now.getFullYear();
-let month = now.getMonth();
+const today = new Date();
+let year = today.getFullYear();
+let month = today.getMonth();
 
 /* UI */
 app.innerHTML = `
@@ -145,7 +97,6 @@ app.innerHTML = `
   <img id="profile">
   <div class="title">*.˚ ༘♡ ᖰ(°'^'°)ᖳ *.˚ ༘♡</div>
   <div id="clock"></div>
-
   <div id="orbit">
     <svg viewBox="0 0 120 120">
       <circle cx="60" cy="60" r="38" fill="none" stroke="black"/>
@@ -156,132 +107,126 @@ app.innerHTML = `
 </header>
 
 <nav>
-  ${categories.map(c => `<button data-view="${c}">${c}</button>`).join("")}
-  <button data-view="달력">달력</button>
+  ${categories.map(c=>`<button data-v="${c}">${c}</button>`).join("")}
+  <button data-v="달력">달력</button>
 </nav>
 
-<div id="content" class="section"></div>
+<div id="content"></div>
 `;
 
 /* PROFILE */
 const profile = document.getElementById("profile");
 profile.src = localStorage.getItem("profile") || "";
-profile.onclick = () => profileInput.click();
-
-profileInput.onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const r = new FileReader();
-  r.onload = () => {
-    profile.src = r.result;
-    localStorage.setItem("profile", r.result);
-  };
-  r.readAsDataURL(file);
+profile.onclick = ()=>profileInput.click();
+profileInput.onchange = e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{ profile.src=r.result; localStorage.setItem("profile",r.result); };
+  r.readAsDataURL(f);
 };
 
 /* CLOCK */
-function clock() {
+setInterval(()=> {
   document.getElementById("clock").textContent =
     new Date().toLocaleTimeString();
-}
-setInterval(clock, 1000);
-clock();
+},1000);
 
 /* NAV */
-document.querySelectorAll("nav button").forEach(btn => {
-  btn.onclick = () => {
-    current = btn.dataset.view;
-    render();
-  };
+document.querySelectorAll("nav button").forEach(b=>{
+  b.onclick=()=>{ current=b.dataset.v; render(); };
 });
 
-/* RENDER */
 function render() {
-  const content = document.getElementById("content");
-  content.innerHTML = "";
+  const c=document.getElementById("content");
+  c.innerHTML="";
 
-  if (current === "달력") {
-    renderCalendar(content);
-    return;
-  }
+  if(current==="달력"){ renderCalendar(c); return; }
 
-  const box = document.createElement("div");
-  box.className = "card";
-  box.innerHTML = `
-    <select id="cat">${categories.map(c=>`<option>${c}</option>`).join("")}</select>
+  const form=document.createElement("div");
+  form.className="card";
+  form.innerHTML=`
+    <select id="cat">${categories.map(x=>`<option>${x}</option>`).join("")}</select>
     <input id="title" placeholder="제목">
     <textarea id="memo" placeholder="기록"></textarea>
-    <button id="imgBtn">이미지 추가</button>
-    <button id="save">저장</button>
+    <button id="imgBtn">이미지</button>
+    <button id="save">${editIndex===null?"저장":"수정"}</button>
   `;
-  content.appendChild(box);
+  c.appendChild(form);
 
-  document.getElementById("imgBtn").onclick = () => recordImageInput.click();
-
-  recordImageInput.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const r = new FileReader();
-    r.onload = () => tempImage = r.result;
-    r.readAsDataURL(file);
+  document.getElementById("imgBtn").onclick=()=>imgInput.click();
+  imgInput.onchange=e=>{
+    const f=e.target.files[0]; if(!f)return;
+    const r=new FileReader();
+    r.onload=()=>tempImage=r.result;
+    r.readAsDataURL(f);
   };
 
-  records
-    .filter(r => r.cat === current)
-    .forEach((r, i) => {
-      const div = document.createElement("div");
-      div.className = "log";
-      div.innerHTML = `
-        <strong>${r.date} · ${r.title}</strong><br>
-        ${r.memo || ""}
-        ${r.image ? `<img src="${r.image}">` : ""}
-        <button class="delete">삭제</button>
-      `;
-      div.querySelector(".delete").onclick = () => {
-        records.splice(i, 1);
-        localStorage.setItem("records", JSON.stringify(records));
-        render();
-      };
-      content.appendChild(div);
-    });
+  records.forEach((r,i)=>{
+    if(r.cat!==current)return;
+    const div=document.createElement("div");
+    div.className="log";
+    div.innerHTML=`
+      <strong>${r.date} · ${r.title}</strong><br>${r.memo||""}
+      ${r.image?`<img src="${r.image}">`:""}
+      <button data-del>삭제</button>
+    `;
+    div.onclick=()=>{
+      editIndex=i;
+      document.getElementById("cat").value=r.cat;
+      document.getElementById("title").value=r.title;
+      document.getElementById("memo").value=r.memo;
+      tempImage=r.image;
+    };
+    div.querySelector("[data-del]").onclick=e=>{
+      e.stopPropagation();
+      records.splice(i,1);
+      localStorage.setItem("records",JSON.stringify(records));
+      render();
+    };
+    c.appendChild(div);
+  });
 
-  document.getElementById("save").onclick = () => {
-    const title = document.getElementById("title").value.trim();
-    if (!title) return;
-
-    const d = new Date();
-    records.push({
-      cat: document.getElementById("cat").value,
+  document.getElementById("save").onclick=()=>{
+    const title=document.getElementById("title").value.trim();
+    if(!title)return;
+    const d=new Date();
+    const data={
+      cat:document.getElementById("cat").value,
       title,
-      memo: document.getElementById("memo").value,
-      image: tempImage,
-      y: d.getFullYear(),
-      m: d.getMonth(),
-      d: d.getDate(),
-      date: d.toLocaleDateString()
-    });
-
-    tempImage = null;
-    localStorage.setItem("records", JSON.stringify(records));
+      memo:document.getElementById("memo").value,
+      image:tempImage,
+      y:d.getFullYear(), m:d.getMonth(), d:d.getDate(),
+      date:d.toLocaleDateString()
+    };
+    if(editIndex===null) records.push(data);
+    else records[editIndex]=data;
+    editIndex=null; tempImage=null;
+    localStorage.setItem("records",JSON.stringify(records));
     render();
   };
 }
 
 /* CALENDAR */
-function renderCalendar(el) {
-  el.innerHTML = `<strong>${year}.${month + 1}</strong>`;
-  const cal = document.createElement("div");
-  cal.className = "calendar";
+function renderCalendar(el){
+  el.innerHTML=`<strong>${year}.${month+1}</strong>`;
+  const cal=document.createElement("div");
+  cal.className="calendar";
 
-  const last = new Date(year, month + 1, 0).getDate();
-  for (let d = 1; d <= last; d++) {
-    const cell = document.createElement("div");
-    cell.className = "day";
-    cell.textContent = d;
-
-    if (records.some(r => r.y === year && r.m === month && r.d === d)) {
-      cell.innerHTML += "<br>●";
-    }
+  const last=new Date(year,month+1,0).getDate();
+  for(let d=1;d<=last;d++){
+    const cell=document.createElement("div");
+    cell.className="day";
+    cell.innerHTML=d;
+    const dayRecords=records.filter(r=>r.y===year&&r.m===month&&r.d===d);
+    dayRecords.forEach(r=>{
+      cell.innerHTML+=`<div>· ${r.title}</div>`;
+    });
+    cell.onclick=()=>{
+      if(dayRecords.length){
+        current=dayRecords[0].cat;
+        render();
+      }
+    };
     cal.appendChild(cell);
   }
   el.appendChild(cal);
