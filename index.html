@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -21,9 +20,7 @@ body {
 }
 
 /* HEADER */
-header {
-  text-align: center;
-}
+header { text-align: center; }
 
 #profile {
   width: 120px;
@@ -34,61 +31,25 @@ header {
   cursor: pointer;
 }
 
-.title {
-  margin-top: 16px;
-  font-size: 20px;
-}
+.title { margin-top: 16px; font-size: 20px; }
+#clock { margin-top: 6px; font-size: 14px; }
 
-#clock {
-  margin-top: 6px;
-  font-size: 14px;
-}
-
-/* MOON */
+/* MOON SVG */
 #space {
-  position: relative;
   width: 120px;
   height: 120px;
   margin: 16px auto 0;
 }
 
-#earth {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 26px;
-  height: 26px;
-  background: black;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
+#orbit-svg {
+  width: 120px;
+  height: 120px;
+  animation: orbit-spin 30s linear infinite;
 }
 
-#orbit {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 90px;
-  height: 90px;
-  border: 1px solid black;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: spin 24s linear infinite;
-}
-
-#moon {
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 12px;
-  height: 12px;
-  background: black;
-  border-radius: 50%;
-  transform: translateX(-50%);
-}
-
-@keyframes spin {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to   { transform: translate(-50%, -50%) rotate(360deg); }
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* NAV */
@@ -106,9 +67,7 @@ nav button {
 }
 
 /* CONTENT */
-.section {
-  margin-top: 32px;
-}
+.section { margin-top: 32px; }
 
 .card {
   border: 1px solid black;
@@ -124,10 +83,16 @@ input, textarea, select, button {
 }
 
 .log {
-  margin-top: 10px;
+  margin-top: 12px;
   border-top: 1px solid black;
-  padding-top: 6px;
+  padding-top: 8px;
   font-size: 13px;
+}
+
+.log img {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid black;
 }
 
 /* CALENDAR */
@@ -149,13 +114,16 @@ input, textarea, select, button {
 
 <body>
 <div id="app"></div>
-<input type="file" id="imgInput" accept="image/*" hidden>
+
+<input type="file" id="profileInput" accept="image/*" hidden>
+<input type="file" id="recordImageInput" accept="image/*" hidden>
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
 const app = document.getElementById("app");
-const imgInput = document.getElementById("imgInput");
+const profileInput = document.getElementById("profileInput");
+const recordImageInput = document.getElementById("recordImageInput");
 
 const categories = ["독서", "영화", "베이스 연습", "작곡 연습"];
 let records = JSON.parse(localStorage.getItem("records") || "[]");
@@ -164,6 +132,7 @@ let current = "독서";
 let now = new Date();
 let year = now.getFullYear();
 let month = now.getMonth();
+let tempImage = null;
 
 /* UI */
 app.innerHTML = `
@@ -173,10 +142,11 @@ app.innerHTML = `
   <div id="clock"></div>
 
   <div id="space">
-    <div id="earth"></div>
-    <div id="orbit">
-      <div id="moon"></div>
-    </div>
+    <svg id="orbit-svg" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="40" fill="none" stroke="black" />
+      <circle cx="60" cy="60" r="10" fill="black" />
+      <circle cx="60" cy="20" r="4" fill="black" />
+    </svg>
   </div>
 </header>
 
@@ -191,17 +161,17 @@ app.innerHTML = `
 /* PROFILE */
 const profile = document.getElementById("profile");
 profile.src = localStorage.getItem("profile") || "";
-profile.onclick = () => imgInput.click();
+profile.onclick = () => profileInput.click();
 
-imgInput.onchange = e => {
+profileInput.onchange = e => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    profile.src = reader.result;
-    localStorage.setItem("profile", reader.result);
+  const r = new FileReader();
+  r.onload = () => {
+    profile.src = r.result;
+    localStorage.setItem("profile", r.result);
   };
-  reader.readAsDataURL(file);
+  r.readAsDataURL(file);
 };
 
 /* CLOCK */
@@ -232,19 +202,32 @@ function render() {
   const box = document.createElement("div");
   box.className = "card";
   box.innerHTML = `
-    <select id="cat">
-      ${categories.map(c => `<option>${c}</option>`).join("")}
-    </select>
+    <select id="cat">${categories.map(c=>`<option>${c}</option>`).join("")}</select>
     <input id="title" placeholder="제목">
     <textarea id="memo" placeholder="기록"></textarea>
+    <button id="imgBtn">이미지 추가</button>
     <button id="save">저장</button>
   `;
   content.appendChild(box);
 
+  document.getElementById("imgBtn").onclick = () => recordImageInput.click();
+
+  recordImageInput.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = () => tempImage = r.result;
+    r.readAsDataURL(file);
+  };
+
   records.filter(r => r.cat === current).forEach(r => {
     const div = document.createElement("div");
     div.className = "log";
-    div.textContent = `${r.date} · ${r.title}`;
+    div.innerHTML = `
+      <strong>${r.date} · ${r.title}</strong><br>
+      ${r.memo || ""}
+      ${r.image ? `<img src="${r.image}">` : ""}
+    `;
     content.appendChild(div);
   });
 
@@ -257,12 +240,14 @@ function render() {
       cat: document.getElementById("cat").value,
       title,
       memo: document.getElementById("memo").value,
+      image: tempImage,
       y: d.getFullYear(),
       m: d.getMonth(),
       d: d.getDate(),
       date: d.toLocaleDateString()
     });
 
+    tempImage = null;
     localStorage.setItem("records", JSON.stringify(records));
     render();
   };
@@ -270,47 +255,7 @@ function render() {
 
 /* CALENDAR */
 function renderCalendar(el) {
-  const h = document.createElement("div");
-  h.innerHTML = `
-    <button id="prev">◀</button>
-    <strong>${year}.${month + 1}</strong>
-    <button id="next">▶</button>
-  `;
-  el.appendChild(h);
-
-  const cal = document.createElement("div");
-  cal.className = "calendar";
-
-  const first = new Date(year, month, 1).getDay();
-  const last = new Date(year, month + 1, 0).getDate();
-
-  for (let i = 0; i < first; i++) cal.appendChild(document.createElement("div"));
-
-  for (let d = 1; d <= last; d++) {
-    const cell = document.createElement("div");
-    cell.className = "day";
-
-    const dayRecords = records.filter(r =>
-      r.y === year && r.m === month && r.d === d
-    );
-
-    cell.innerHTML =
-      `<strong>${d}</strong><br>` +
-      dayRecords.map(r => r.cat).join("<br>");
-
-    cal.appendChild(cell);
-  }
-
-  el.appendChild(cal);
-
-  document.getElementById("prev").onclick = () => {
-    month--; if (month < 0) { month = 11; year--; }
-    render();
-  };
-  document.getElementById("next").onclick = () => {
-    month++; if (month > 11) { month = 0; year++; }
-    render();
-  };
+  el.innerHTML = `<strong>${year}.${month+1}</strong>`;
 }
 
 render();
