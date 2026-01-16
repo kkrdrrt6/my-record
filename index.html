@@ -65,6 +65,7 @@ input, textarea, select, button {
 }
 
 .day div { font-size: 10px; }
+.back { margin-top: 12px; }
 </style>
 </head>
 
@@ -87,6 +88,8 @@ let records = JSON.parse(localStorage.getItem("records") || "[]");
 let current = "독서";
 let editIndex = null;
 let tempImage = null;
+let selectedDate = null;
+
 const today = new Date();
 let year = today.getFullYear();
 let month = today.getMonth();
@@ -126,14 +129,14 @@ profileInput.onchange = e=>{
 };
 
 /* CLOCK */
-setInterval(()=> {
+setInterval(()=>{
   document.getElementById("clock").textContent =
     new Date().toLocaleTimeString();
 },1000);
 
 /* NAV */
 document.querySelectorAll("nav button").forEach(b=>{
-  b.onclick=()=>{ current=b.dataset.v; render(); };
+  b.onclick=()=>{ current=b.dataset.v; selectedDate=null; render(); };
 });
 
 function render() {
@@ -141,7 +144,13 @@ function render() {
   c.innerHTML="";
 
   if(current==="달력"){ renderCalendar(c); return; }
+  if(current==="날짜"){ renderDateView(c); return; }
 
+  renderCategory(c);
+}
+
+/* CATEGORY VIEW */
+function renderCategory(c){
   const form=document.createElement("div");
   form.className="card";
   form.innerHTML=`
@@ -163,47 +172,78 @@ function render() {
 
   records.forEach((r,i)=>{
     if(r.cat!==current)return;
-    const div=document.createElement("div");
-    div.className="log";
-    div.innerHTML=`
-      <strong>${r.date} · ${r.title}</strong><br>${r.memo||""}
-      ${r.image?`<img src="${r.image}">`:""}
-      <button data-del>삭제</button>
-    `;
-    div.onclick=()=>{
-      editIndex=i;
-      document.getElementById("cat").value=r.cat;
-      document.getElementById("title").value=r.title;
-      document.getElementById("memo").value=r.memo;
-      tempImage=r.image;
-    };
-    div.querySelector("[data-del]").onclick=e=>{
-      e.stopPropagation();
-      records.splice(i,1);
-      localStorage.setItem("records",JSON.stringify(records));
-      render();
-    };
-    c.appendChild(div);
+    renderLog(c,r,i);
   });
 
-  document.getElementById("save").onclick=()=>{
-    const title=document.getElementById("title").value.trim();
-    if(!title)return;
-    const d=new Date();
-    const data={
-      cat:document.getElementById("cat").value,
-      title,
-      memo:document.getElementById("memo").value,
-      image:tempImage,
-      y:d.getFullYear(), m:d.getMonth(), d:d.getDate(),
-      date:d.toLocaleDateString()
-    };
-    if(editIndex===null) records.push(data);
-    else records[editIndex]=data;
-    editIndex=null; tempImage=null;
+  document.getElementById("save").onclick=()=>saveRecord();
+}
+
+/* DATE VIEW */
+function renderDateView(c){
+  const h=document.createElement("strong");
+  h.textContent = selectedDate;
+  c.appendChild(h);
+
+  const list = records
+    .map((r,i)=>({...r,i}))
+    .filter(r=>r.date===selectedDate);
+
+  list.forEach(r=>renderLog(c,r,r.i));
+
+  const back=document.createElement("button");
+  back.textContent="← 달력으로";
+  back.className="back";
+  back.onclick=()=>{ current="달력"; render(); };
+  c.appendChild(back);
+}
+
+/* LOG */
+function renderLog(c,r,i){
+  const div=document.createElement("div");
+  div.className="log";
+  div.innerHTML=`
+    <strong>${r.date} · ${r.title}</strong><br>${r.memo||""}
+    ${r.image?`<img src="${r.image}">`:""}
+    <button data-del>삭제</button>
+  `;
+  div.onclick=()=>{
+    editIndex=i;
+    current=r.cat;
+    selectedDate=null;
+    render();
+    document.getElementById("cat").value=r.cat;
+    document.getElementById("title").value=r.title;
+    document.getElementById("memo").value=r.memo;
+    tempImage=r.image;
+  };
+  div.querySelector("[data-del]").onclick=e=>{
+    e.stopPropagation();
+    records.splice(i,1);
     localStorage.setItem("records",JSON.stringify(records));
     render();
   };
+  c.appendChild(div);
+}
+
+/* SAVE */
+function saveRecord(){
+  const title=document.getElementById("title").value.trim();
+  if(!title)return;
+  const d=new Date();
+  const data={
+    cat:document.getElementById("cat").value,
+    title,
+    memo:document.getElementById("memo").value,
+    image:tempImage,
+    y:d.getFullYear(), m:d.getMonth(), d:d.getDate(),
+    date:d.toLocaleDateString()
+  };
+  if(editIndex===null) records.push(data);
+  else records[editIndex]=data;
+
+  editIndex=null; tempImage=null;
+  localStorage.setItem("records",JSON.stringify(records));
+  render();
 }
 
 /* CALENDAR */
@@ -223,7 +263,8 @@ function renderCalendar(el){
     });
     cell.onclick=()=>{
       if(dayRecords.length){
-        current=dayRecords[0].cat;
+        selectedDate = dayRecords[0].date;
+        current = "날짜";
         render();
       }
     };
